@@ -1,0 +1,492 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  CoturnDHCPOptions:
+    Type: "AWS::EC2::DHCPOptions"
+    Properties:
+      DomainName: !Sub "${AWS::Region}.compute.internal"
+      DomainNameServers:
+        - AmazonProvidedDNS
+
+  CoturnVPCDHCPOptionsAssociation:
+    Type: "AWS::EC2::VPCDHCPOptionsAssociation"
+    Properties:
+      DhcpOptionsId: !Ref CoturnDHCPOptions
+      VpcId: !Ref CoturnVPC
+
+  CoturnNetworkACL:
+    Type: "AWS::EC2::NetworkAcl"
+    Properties:
+      VpcId: !Ref CoturnVPC
+
+  CoturnNetworkACLInboundRuleUDP:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: false
+      NetworkAclId: !Ref CoturnNetworkACL
+      Protocol: 17
+      PortRange:
+        From: 3478
+        To: 3478
+      RuleAction: allow
+      RuleNumber: "100"
+
+  CoturnNetworkACLInboundRuleAllTraffic:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      CidrBlock: 0.0.0.0/0
+      Egress: false
+      NetworkAclId: !Ref CoturnNetworkACL
+      Protocol: "-1" # Set to all traffic types
+      RuleAction: allow
+      RuleNumber: "105" # Change the rule number as needed
+
+  CoturnOutboundRule:
+    Type: "AWS::EC2::NetworkAclEntry"
+    Properties:
+      NetworkAclId: !Ref CoturnNetworkACL
+      RuleNumber: 100
+      Protocol: -1
+      Egress: true
+      RuleAction: allow
+      CidrBlock: 0.0.0.0/0
+
+  CoturnSubnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Sub "${AWS::Region}a"
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref CoturnVPC
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: CoturnSubnet
+
+  CoturnSubnetAssociation:
+    Type: "AWS::EC2::SubnetNetworkAclAssociation"
+    Properties:
+      SubnetId: !Ref CoturnSubnet
+      NetworkAclId: !Ref CoturnNetworkACL
+
+  CoturnSubnetRouteTableAssociation:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !Ref CoturnRouteTable
+      SubnetId: !Ref CoturnSubnet
+
+  CoturnVPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: CoturnVPC
+
+  CoturnInternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+        - Key: Name
+          Value: CoturnInternetGateway
+
+  CoturnInternetGatewayAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      VpcId: !Ref CoturnVPC
+      InternetGatewayId: !Ref CoturnInternetGateway
+
+  CoturnRouteTable:
+    Type: "AWS::EC2::RouteTable"
+    Properties:
+      VpcId: !Ref CoturnVPC
+      Tags:
+        - Key: Name
+          Value: CoturnRouteTable
+
+  CoturnDefaultRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: CoturnInternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref CoturnInternetGateway
+      RouteTableId: !Ref CoturnRouteTable
+
+  ECSServiceAutoScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [application-autoscaling.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole"
+
+  CoturnEcsTaskExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+        Version: "2012-10-17"
+      Path: /
+      Policies:
+        - PolicyName: AmazonECSTaskExecutionRolePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:GetRepositoryPolicy"
+                  - "ecr:DescribeRepositories"
+                  - "ecr:ListImages"
+                  - "ecr:DescribeImages"
+                  - "ecr:BatchGetImage"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+        - PolicyName: CloudWatchLogsFullAccess
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                  - "logs:GetLogEvents"
+                  - "logs:FilterLogEvents"
+                Resource: "*"
+        - PolicyName: AdditionalPermissions
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "application-autoscaling:DeleteScalingPolicy"
+                  - "application-autoscaling:DeregisterScalableTarget"
+                  - "application-autoscaling:DescribeScalableTargets"
+                  - "application-autoscaling:DescribeScalingActivities"
+                  - "application-autoscaling:DescribeScalingPolicies"
+                  - "application-autoscaling:PutScalingPolicy"
+                  - "application-autoscaling:RegisterScalableTarget"
+                  - "appmesh:DescribeVirtualGateway"
+                  - "appmesh:DescribeVirtualNode"
+                  - "appmesh:ListMeshes"
+                  - "appmesh:ListVirtualGateways"
+                  - "appmesh:ListVirtualNodes"
+                  - "autoscaling:CreateAutoScalingGroup"
+                  - "autoscaling:CreateLaunchConfiguration"
+                  - "autoscaling:DeleteAutoScalingGroup"
+                  - "autoscaling:DeleteLaunchConfiguration"
+                  - "autoscaling:Describe*"
+                  - "autoscaling:UpdateAutoScalingGroup"
+                  - "cloudformation:CreateStack"
+                  - "cloudformation:DeleteStack"
+                  - "cloudformation:DescribeStack*"
+                  - "cloudformation:UpdateStack"
+                  - "cloudwatch:DeleteAlarms"
+                  - "cloudwatch:DescribeAlarms"
+                  - "cloudwatch:GetMetricStatistics"
+                  - "cloudwatch:PutMetricAlarm"
+                  - "codedeploy:BatchGetApplicationRevisions"
+                  - "codedeploy:BatchGetApplications"
+                  - "codedeploy:BatchGetDeploymentGroups"
+                  - "codedeploy:BatchGetDeployments"
+                  - "codedeploy:ContinueDeployment"
+                  - "codedeploy:CreateApplication"
+                  - "codedeploy:CreateDeployment"
+                  - "codedeploy:CreateDeploymentGroup"
+                  - "codedeploy:GetApplication"
+                  - "codedeploy:GetApplicationRevision"
+                  - "codedeploy:GetDeployment"
+                  - "codedeploy:GetDeploymentConfig"
+                  - "codedeploy:GetDeploymentGroup"
+                  - "codedeploy:GetDeploymentTarget"
+                  - "codedeploy:ListApplicationRevisions"
+                  - "codedeploy:ListApplications"
+                  - "codedeploy:ListDeploymentConfigs"
+                  - "codedeploy:ListDeploymentGroups"
+                  - "codedeploy:ListDeployments"
+                  - "codedeploy:ListDeploymentTargets"
+                  - "codedeploy:RegisterApplicationRevision"
+                  - "codedeploy:StopDeployment"
+                  - "ec2:AssociateRouteTable"
+                  - "ec2:AttachInternetGateway"
+                  - "ec2:AuthorizeSecurityGroupIngress"
+                  - "ec2:CancelSpotFleetRequests"
+                  - "ec2:CreateInternetGateway"
+                  - "ec2:CreateLaunchTemplate"
+                  - "ec2:CreateRoute"
+                  - "ec2:CreateRouteTable"
+                  - "ec2:CreateSecurityGroup"
+                  - "ec2:CreateSubnet"
+                  - "ec2:CreateVpc"
+                  - "ec2:DeleteLaunchTemplate"
+                  - "ec2:DeleteSubnet"
+                  - "ec2:DeleteVpc"
+                  - "ec2:Describe*"
+                  - "ec2:DetachInternetGateway"
+                  - "ec2:DisassociateRouteTable"
+                  - "ec2:ModifySubnetAttribute"
+                  - "ec2:ModifyVpcAttribute"
+                  - "ec2:RequestSpotFleet"
+                  - "ec2:RunInstances"
+                  - "ecs:*"
+                  - "elasticfilesystem:DescribeAccessPoints"
+                  - "elasticfilesystem:DescribeFileSystems"
+                  - "elasticloadbalancing:CreateListener"
+                  - "elasticloadbalancing:CreateLoadBalancer"
+                  - "elasticloadbalancing:CreateRule"
+                  - "elasticloadbalancing:CreateTargetGroup"
+                  - "elasticloadbalancing:DeleteListener"
+                  - "elasticloadbalancing:DeleteLoadBalancer"
+                  - "elasticloadbalancing:DeleteRule"
+                  - "elasticloadbalancing:DeleteTargetGroup"
+                  - "elasticloadbalancing:DescribeListeners"
+                  - "elasticloadbalancing:DescribeLoadBalancers"
+                  - "elasticloadbalancing:DescribeRules"
+                  - "elasticloadbalancing:DescribeTargetGroups"
+                  - "events:DeleteRule"
+                  - "events:DescribeRule"
+                  - "events:ListRuleNamesByTarget"
+                  - "events:ListTargetsByRule"
+                  - "events:PutRule"
+                  - "events:PutTargets"
+                  - "events:RemoveTargets"
+                  - "fsx:DescribeFileSystems"
+                  - "iam:ListAttachedRolePolicies"
+                  - "iam:ListInstanceProfiles"
+                  - "iam:ListRoles"
+                  - "lambda:ListFunctions"
+                  - "logs:CreateLogGroup"
+                  - "logs:DescribeLogGroups"
+                  - "logs:FilterLogEvents"
+                  - "route53:CreateHostedZone"
+                  - "route53:DeleteHostedZone"
+                  - "route53:GetHealthCheck"
+                  - "route53:GetHostedZone"
+                  - "route53:ListHostedZonesByName"
+                  - "servicediscovery:CreatePrivateDnsNamespace"
+                  - "servicediscovery:CreateService"
+                  - "servicediscovery:DeleteService"
+                  - "servicediscovery:GetNamespace"
+                  - "servicediscovery:GetOperation"
+                  - "servicediscovery:GetService"
+                  - "servicediscovery:ListNamespaces"
+                  - "servicediscovery:ListServices"
+                  - "servicediscovery:UpdateService"
+                  - "sns:ListTopics"
+                Resource: "*"
+                
+  CoturnSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "coturn-sg"
+      VpcId: !Ref CoturnVPC
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: "Name"
+          Value: "Coturn Security Group"
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+    DependsOn: CoturnVPC
+
+  CoturnECSCluster:
+    Type: "AWS::ECS::Cluster"
+    Properties:
+      ClusterName: Coturn
+  CoturnLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: /ecs/coturn-fargate-task-definition
+      RetentionInDays: 7
+  taskdefinition:
+    Type: "AWS::ECS::TaskDefinition"
+    Properties:
+      ContainerDefinitions:
+        - Command:
+            - "-n --external-ip=\"$(detect-external-ip)\" --relay-ip=\"$(detect-external-ip)\" --listening-port=3478 --min-port=49160 --max-port=49200 --lt-cred-mech --no-tlsv1 --no-tlsv1_1 --no-cli --user=arbiter:warpfield"
+          Essential: true
+          Name: arbiter-coturn-cluster
+          Image: docker.io/coturn/coturn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-create-group: true
+              awslogs-group: /ecs/Coturn
+              awslogs-region: !Sub "${AWS::Region}"
+              awslogs-stream-prefix: ecs
+          PortMappings:
+            - ContainerPort: 3478
+              HostPort: 3478
+              Protocol: udp
+            - ContainerPort: 49160
+              HostPort: 49160
+              Protocol: udp
+            - ContainerPort: 49161
+              HostPort: 49161
+              Protocol: udp
+            - ContainerPort: 49162
+              HostPort: 49162
+              Protocol: udp
+            - ContainerPort: 49163
+              HostPort: 49163
+              Protocol: udp
+            - ContainerPort: 49164
+              HostPort: 49164
+              Protocol: udp
+            - ContainerPort: 49165
+              HostPort: 49165
+              Protocol: udp
+            - ContainerPort: 49166
+              HostPort: 49166
+              Protocol: udp
+            - ContainerPort: 49167
+              HostPort: 49167
+              Protocol: udp
+            - ContainerPort: 49168
+              HostPort: 49168
+              Protocol: udp
+            - ContainerPort: 49169
+              HostPort: 49169
+              Protocol: udp
+            - ContainerPort: 49170
+              HostPort: 49170
+              Protocol: udp
+      Cpu: "512"
+      Memory: "1024"
+      ExecutionRoleArn: !Ref CoturnEcsTaskExecutionRole
+      Family: coturn
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      RuntimePlatform:
+        CpuArchitecture: X86_64
+        OperatingSystemFamily: LINUX
+
+  ECSService:
+    Type: "AWS::ECS::Service"
+    Properties:
+      ServiceName: coturn-service
+      Cluster: !Ref CoturnECSCluster
+      DesiredCount: 2
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref CoturnSecurityGroup
+          Subnets:
+            - !Ref CoturnSubnet
+      TaskDefinition: !Ref taskdefinition
+      LoadBalancers:
+        - ContainerName: arbiter-coturn-cluster
+          ContainerPort: 3478
+          TargetGroupArn: !Ref CoturnTargetGroup
+    DependsOn:
+      - CoturnNLB
+      - CoturnListener
+
+  CoturnTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: ip
+      TargetGroupName: coturn-target-group
+      TargetGroupAttributes:
+        - Key: "stickiness.enabled"
+          Value: "true"
+        - Key: "stickiness.type"
+          Value: "source_ip"
+      Protocol: UDP
+      Port: 3478
+      VpcId: !Ref CoturnVPC
+    DependsOn:
+      - CoturnInternetGatewayAttachment
+      - CoturnNLB
+
+  CoturnNLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: coturn-nlb
+      Scheme: internet-facing
+      SecurityGroups: 
+        - !Ref CoturnSecurityGroup
+      IpAddressType: ipv4
+      Subnets:
+        - !Ref CoturnSubnet
+      Type: network
+      LoadBalancerAttributes:
+        - Key: load_balancing.cross_zone.enabled
+          Value: "true"
+      Tags:
+        - Key: Name
+          Value: CoturnNLB
+    DependsOn: CoturnInternetGatewayAttachment
+
+  CoturnListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref CoturnTargetGroup
+      LoadBalancerArn: !Ref CoturnNLB
+      Port: 3478
+      Protocol: UDP
+    DependsOn:
+      - CoturnTargetGroup
+      - CoturnNLB
+
+  AutoScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 5
+      MinCapacity: 2
+      ResourceId: "service/Coturn/coturn-service"
+      RoleARN: !GetAtt ECSServiceAutoScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+    DependsOn: ECSService
+
+  AutoScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ServiceAutoScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref AutoScalingTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 10
+        ScaleOutCooldown: 10
+        TargetValue: 75
+
+  CoturnNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref CoturnSubnet
+      Description: Network Interface
+      GroupSet:
+        - !Ref CoturnSecurityGroup
+      PrivateIpAddress: 10.0.1.25
+      SourceDestCheck: true
+
+Outputs:
+  LoadBalancerEndpoint:
+    Value: !GetAtt CoturnNLB.DNSName

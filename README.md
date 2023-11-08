@@ -18,7 +18,7 @@ $ npm install -g arbiter-wrtc
 $ arbiter COMMAND
 running command...
 $ arbiter (--version)
-arbiter-wrtc/0.0.0 darwin-x64 node-v20.6.1
+arbiter-wrtc/0.1.0 darwin-x64 node-v20.6.1
 $ arbiter --help [COMMAND]
 USAGE
   $ arbiter COMMAND
@@ -27,6 +27,7 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
+* [`arbiter deploy [FILE]`](#arbiter-deploy-file)
 * [`arbiter hello PERSON`](#arbiter-hello-person)
 * [`arbiter hello world`](#arbiter-hello-world)
 * [`arbiter help [COMMANDS]`](#arbiter-help-commands)
@@ -39,6 +40,30 @@ USAGE
 * [`arbiter plugins:uninstall PLUGIN...`](#arbiter-pluginsuninstall-plugin-1)
 * [`arbiter plugins:uninstall PLUGIN...`](#arbiter-pluginsuninstall-plugin-2)
 * [`arbiter plugins update`](#arbiter-plugins-update)
+
+## `arbiter deploy [FILE]`
+
+describe the command here
+
+```
+USAGE
+  $ arbiter deploy [FILE] [-n <value>] [-f]
+
+ARGUMENTS
+  FILE  file to read
+
+FLAGS
+  -f, --force
+  -n, --name=<value>  name to print
+
+DESCRIPTION
+  describe the command here
+
+EXAMPLES
+  $ arbiter deploy
+```
+
+_See code: [src/commands/deploy.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/deploy.ts)_
 
 ## `arbiter hello PERSON`
 
@@ -62,7 +87,7 @@ EXAMPLES
   hello friend from oclif! (./src/commands/hello/index.ts)
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.0.0/src/commands/hello/index.ts)_
+_See code: [src/commands/hello/index.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/hello/index.ts)_
 
 ## `arbiter hello world`
 
@@ -80,7 +105,7 @@ EXAMPLES
   hello world! (./src/commands/hello/world.ts)
 ```
 
-_See code: [src/commands/hello/world.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.0.0/src/commands/hello/world.ts)_
+_See code: [src/commands/hello/world.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/hello/world.ts)_
 
 ## `arbiter help [COMMANDS]`
 
