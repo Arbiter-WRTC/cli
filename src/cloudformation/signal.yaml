@@ -252,6 +252,7 @@ Resources:
               ':typeValue': 'sfu',
               ':idValue': id,
               ':connectionValue': 'UNCLAIMED',
+              ':roomIdValue': ''
             };
             try {
               await ddb.update(params).promise();
@@ -268,7 +269,8 @@ Resources:
             params.ExpressionAttributeValues = {
               ':typeValue': 'client',
               ':idValue': id,
-              ':roomIdValue': roomId
+              ':connectionValue': '',
+              ':roomIdValue': roomId,
             };
             try {
               await ddb.update(params).promise();
@@ -503,8 +505,12 @@ Resources:
                 return { statusCode: 500 };
               }
             } else {
+              const client = connections.Items.find(
+                (conn) => conn.connectionId === event.requestContext.connectionId,
+              );
+              
               const sfuInfo = connections.Items.find(
-                (conn) => conn.id === receiver
+                (conn) => conn.id === client.roomId
               );
               console.log(
                 `Client: ${socketInfo.connectionId} Handshaking with SFU ${sfuInfo.connectionId}`
@@ -788,4 +794,8 @@ Outputs:
           - Ref: AWS::URLSuffix
           - /production
     Export:
-      Name: WebsocketAPIURI1
+      Name: WebsocketAPIURI
+  DynamoDBTableArn:
+    Value: !Ref ConnectionsTable8000B8A1
+    Export:
+      Name: ConnectionsTableName

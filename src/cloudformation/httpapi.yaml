@@ -1,18 +1,4 @@
 Resources:
-  ConnectionsTable8000B8A1:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      KeySchema:
-        - AttributeName: connectionId
-          KeyType: HASH
-      AttributeDefinitions:
-        - AttributeName: connectionId
-          AttributeType: S
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
-    UpdateReplacePolicy: Delete
-    DeletionPolicy: Delete
   CreateRoomHandlerServiceRole2308:
     Type: AWS::IAM::Role
     Properties:
@@ -29,6 +15,7 @@ Resources:
             - - 'arn:'
               - Ref: AWS::Partition
               - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+              
   CreateRoomHandlerServiceRoleDefaultPolicy2308:
     Type: AWS::IAM::Policy
     Properties:
@@ -188,15 +175,15 @@ Resources:
           - Arn
       Environment:
         Variables:
-          table:
-            Ref: ConnectionsTable8000B8A1
-          RTC_CONFIG: '{"iceServers":[{"urls":"stun:anotherone-9ab8ceddb95235b7.elb.us-east-1.amazonaws.com:3478"},{"urls":"turn:anotherone-9ab8ceddb95235b7.elb.us-east-1.amazonaws.com:3478","username":"username1","credential":"password1"}]}'
-          SIGNAL_SERVER_URL: https://signal.noop.live
+          table: !ImportValue ConnectionsTableName
+          RTC_CONFIG: !ImportValue RTCConfig
+          SIGNAL_SERVER_URL: !ImportValue WebsocketAPIURI
       Handler: index.handler
       Runtime: nodejs16.x
     DependsOn:
       - CreateRoomHandlerServiceRoleDefaultPolicy2308
       - CreateRoomHandlerServiceRole2308
+
   GetRoomIDHandlerServiceRole2308:
     Type: AWS::IAM::Role
     Properties:
@@ -213,6 +200,7 @@ Resources:
             - - 'arn:'
               - Ref: AWS::Partition
               - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
   GetRoomIDHandlerServiceRoleDefaultPolicy2308:
     Type: AWS::IAM::Policy
     Properties:
@@ -232,15 +220,12 @@ Resources:
               - dynamodb:UpdateItem
               - dynamodb:DeleteItem
             Effect: Allow
-            Resource:
-              - Fn::GetAtt:
-                  - ConnectionsTable8000B8A1
-                  - Arn
-              - Ref: AWS::NoValue
+            Resource: 'arn:aws:dynamodb:*:*:table/*'
         Version: '2012-10-17'
       PolicyName: GetRoomIDHandlerServiceRoleDefaultPolicy2308
       Roles:
         - Ref: GetRoomIDHandlerServiceRole2308
+
   GetRoomIDHandler2308:
     Type: AWS::Lambda::Function
     Properties:
@@ -253,18 +238,18 @@ Resources:
           exports.handler = async function (event, context) {
             let requestedPath;
             try {
-              requestedPath = JSON.parse(event.body).UrlPath;
+              requestedPath = event.queryStringParameters['urlPath']
             } catch(e) {
               return {
                 statusCode: 400,
-                body: JSON.stringify({ message: 'missing UrlPath' })
+                body: JSON.stringify({ message: 'missing urlPath' })
               };
             }
 
             const params = {
               TableName : process.env.table,
-              FilterExpression : 'UrlPath = :UrlPath',
-              ExpressionAttributeValues : {':UrlPath' : requestedPath}
+              FilterExpression : 'urlPath = :urlPath',
+              ExpressionAttributeValues : {':urlPath' : requestedPath}
             };
             
             try {
@@ -295,13 +280,13 @@ Resources:
           - Arn
       Environment:
         Variables:
-          table:
-            Ref: ConnectionsTable8000B8A1
+          table: !ImportValue ConnectionsTableName
       Handler: index.handler
       Runtime: nodejs16.x
     DependsOn:
       - GetRoomIDHandlerServiceRoleDefaultPolicy2308
       - GetRoomIDHandlerServiceRole2308
+
   ClaimRoomHandlerServiceRole2308:
     Type: AWS::IAM::Role
     Properties:
@@ -318,6 +303,7 @@ Resources:
             - - 'arn:'
               - Ref: AWS::Partition
               - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
   ClaimRoomHandlerServiceRoleDefaultPolicy2308:
     Type: AWS::IAM::Policy
     Properties:
@@ -337,15 +323,12 @@ Resources:
               - dynamodb:UpdateItem
               - dynamodb:DeleteItem
             Effect: Allow
-            Resource:
-              - Fn::GetAtt:
-                  - ConnectionsTable8000B8A1
-                  - Arn
-              - Ref: AWS::NoValue
+            Resource: 'arn:aws:dynamodb:*:*:table/*'
         Version: '2012-10-17'
       PolicyName: ClaimRoomHandlerServiceRoleDefaultPolicy2308
       Roles:
         - Ref: ClaimRoomHandlerServiceRole2308
+    
   ClaimRoomHandler2308:
     Type: AWS::Lambda::Function
     Properties:
@@ -358,11 +341,11 @@ Resources:
           exports.handler = async function (event, context) {
             let requestedPath;
             try {
-              requestedPath = JSON.parse(event.body).UrlPath;
+              requestedPath = JSON.parse(event.body).urlPath;
             } catch(e) {
               return {
                 statusCode: 400,
-                body: JSON.stringify({ message: 'missing UrlPath' })
+                body: JSON.stringify({ message: 'missing urlPath' })
               };
             }
 
@@ -380,7 +363,7 @@ Resources:
                   TableName: process.env.table,
                   Key: { connectionId: room.connectionId },
                   AttributeUpdates: {
-                    'UrlPath': {
+                    'urlPath': {
                       Action: 'PUT',
                       Value: requestedPath
                     },
@@ -415,13 +398,13 @@ Resources:
           - Arn
       Environment:
         Variables:
-          table:
-            Ref: ConnectionsTable8000B8A1
+          table: !ImportValue ConnectionsTableName
       Handler: index.handler
       Runtime: nodejs16.x
     DependsOn:
       - ClaimRoomHandlerServiceRoleDefaultPolicy2308
       - ClaimRoomHandlerServiceRole2308
+      
   HTTPApiGateway2308:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -564,3 +547,19 @@ Resources:
         - Ref: CreateRoomHandlerServiceRole2308
         - Ref: GetRoomIDHandlerServiceRole2308
         - Ref: ClaimRoomHandlerServiceRole2308
+
+Outputs:
+  HTTPGatewayURI:
+    Description: "HTTP API Gateway endpoint URL for Prod stage"
+    Value:
+      Fn::Join:
+        - ""
+        - - "https://"
+          - Ref: HTTPApiGateway2308
+          - ".execute-api."
+          - Ref: AWS::Region
+          - "."
+          - Ref: AWS::URLSuffix
+          - "/production"
+    Export:
+      Name: HTTPAPIURI
