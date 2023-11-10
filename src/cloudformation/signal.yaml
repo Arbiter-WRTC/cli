@@ -484,8 +484,11 @@ Resources:
             console.log('Processing payload:', payload);
 
             const socketInfo = connections.Items.find(
-              (connection) => connection.id === payload.data.sender
+              (connection) =>
+                connection.connectionId === event.requestContext.connectionId
             );
+            console.log('Connections:', connections);
+            console.log('Socket if Found:', socketInfo);
 
             if (socketInfo.connectionType === 'sfu') {
               const { sender, receiver } = data;
@@ -506,12 +509,14 @@ Resources:
               }
             } else {
               const client = connections.Items.find(
-                (conn) => conn.connectionId === event.requestContext.connectionId,
+                (conn) => conn.connectionId === event.requestContext.connectionId
               );
-              
-              const sfuInfo = connections.Items.find(
-                (conn) => conn.id === client.roomId
-              );
+
+              if (!client) {
+                return { statusCode: 400 };
+              }
+
+              const sfuInfo = connections.Items.find((conn) => conn.id === data.roomId);
               console.log(
                 `Client: ${socketInfo.connectionId} Handshaking with SFU ${sfuInfo.connectionId}`
               );
