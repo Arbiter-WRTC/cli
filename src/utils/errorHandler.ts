@@ -1,15 +1,12 @@
-import { Ora } from "ora";
 import * as ui from "./ui.js";
 
-export const errorHandler = (errorMessage: string, spinner?: Ora) => {
-  spinner?.fail();
+export const errorHandler = (errorMessage: string) => {
   ui.error(`Error: ${errorMessage}`);
 
   process.exit();
 };
 
-export const deployErrorHandler = (errorMessage: string, spinner?: Ora) => {
-  spinner?.fail();
+export const deployErrorHandler = (errorMessage: string) => {
   ui.error(`Error: ${errorMessage}`);
 
   ui.display(

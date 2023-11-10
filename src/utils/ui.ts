@@ -16,6 +16,10 @@ export const display = (text: string) => {
   console.log(text);
 };
 
+export const gradientText = (text: string) => {
+  console.log(arbiterGradient(text));
+}
+
 export const warn = (text: string) => {
   console.log(warning(text));
 };
@@ -75,6 +79,29 @@ export const generateName = (): Promise<void> => {
   return Promise.resolve(
     figlet.text(
       "ARBITER",
+      {
+        font: "Standard",
+        horizontalLayout: "default",
+        verticalLayout: "default",
+        width: 80,
+        whitespaceBreak: true,
+      },
+      (err, data) => {
+        if (err) {
+          console.log("Something went wrong...");
+          console.dir(err);
+          return;
+        }
+        const centeredData = centerText(data, 60)
+        console.log(gradient(["#F03D98","#0D2D7D", "#0D2D7D", "#F03D98"])(`${centeredData}\n`));
+      }
+    ));
+};
+
+export const deploySuccessText = (): Promise<void> => {
+  return Promise.resolve(
+    figlet.text(
+      "ARBITER DEPLOYED",
       {
         font: "Standard",
         horizontalLayout: "default",
