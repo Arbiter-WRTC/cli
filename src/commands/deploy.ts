@@ -1,30 +1,42 @@
-import {Args, Command, Flags} from '@oclif/core'
-
+import {Command} from '@oclif/core'
+import { GetAwsInfo } from '../prompts/awsCredentials.js';
+import { CloudFormation} from "@aws-sdk/client-cloudformation";
+import * as ui from "../utils/ui.js";
+import { CloudDeploy } from '../utils/cloudDeploy.js';
+import { errorHandler } from '../utils/errorHandler.js';
 export default class Deploy extends Command {
-  static description = 'describe the command here'
-
-  static examples = [
-    '<%= config.bin %> <%= command.id %>',
-  ]
-
-  static flags = {
-    // flag with a value (-n, --name=VALUE)
-    name: Flags.string({char: 'n', description: 'name to print'}),
-    // flag with no value (-f, --force)
-    force: Flags.boolean({char: 'f'}),
-  }
-
-  static args = {
-    file: Args.string({description: 'file to read'}),
-  }
+  static description = 'provision and deploy arbiter to aws';
 
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(Deploy)
-
-    const name = flags.name ?? 'world'
-    this.log(`hello ${name} from /Users/watzman/Documents/Capstone/Arbiter/cli/src/commands/deploy.ts`)
-    if (args.file && flags.force) {
-      this.log(`you input --force and --file: ${args.file}`)
+    ui.greet();
+    await ui.printLogo();
+    await ui.generateName();
+    const {credentials, region, idleRooms} = await GetAwsInfo();
+    let cloudFormation
+    
+    try {
+      cloudFormation = new CloudFormation({ credentials, region });
+      await cloudFormation.listStacks({});
+    } catch (err) {
+      if (err instanceof Error) {
+        errorHandler(err.message);
+      } else {
+        errorHandler(`Non-Error thrown: ${String(err)}`);
+      }
     }
+
+    if (!cloudFormation) {
+      console.error("CloudFormation client could not be initialized.");
+      return;
+    }
+    
+    ui.display("Arbiter is being deployed and might take a few minutes");
+
+    const arbiterDeploy = new CloudDeploy(cloudFormation, idleRooms);
+    await arbiterDeploy.deployAll();
+
+    console.log('thanks bye')
+   // show process working in the background
+   // display success or failure
   }
 }

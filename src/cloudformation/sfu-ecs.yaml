@@ -299,12 +299,6 @@ Resources:
         - Essential: true
           Name: node-sfu
           Image: docker.io/ixisixi/arbiter-node-sfu
-          Environment:
-            - Name: "RTC_CONFIG"
-              Value: >-
-                {"iceServers":[{"urls":"stun:anotherone-9ab8ceddb95235b7.elb.us-east-1.amazonaws.com:3478"},{"urls":"turn:anotherone-9ab8ceddb95235b7.elb.us-east-1.amazonaws.com:3478","username":"username1","credential":"password1"}]}
-            - Name: "SIGNAL_SERVER_URL"
-              Value: "https://signal.noop.live"
           LogConfiguration:
             LogDriver: awslogs
             Options:

@@ -488,5 +488,11 @@ Resources:
       SourceDestCheck: true
 
 Outputs:
-  LoadBalancerEndpoint:
-    Value: !GetAtt CoturnNLB.DNSName
+  FormattedRTCConfig:
+    Description: "JSON structure for RTC configuration"
+    Value: 
+      Fn::Sub: 
+        - '{"iceServers":[{"urls":"stun:${LoadBalancerDNS}:3478"},{"urls":"turn:${LoadBalancerDNS}:3478","username":"username1","credential":"password1"}]}'
+        - LoadBalancerDNS: !GetAtt CoturnNLB.DNSName
+    Export:
+      Name: RTCConfig
