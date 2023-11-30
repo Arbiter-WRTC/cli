@@ -492,7 +492,7 @@ Resources:
     DependsOn:
       - HandshakeHandlerServiceRoleDefaultPolicy2308
       - HandshakeHandlerServiceRole2308
-    DisconnectHandlerServiceRoleE54F14F9:
+  DisconnectHandlerServiceRoleE54F14F9:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
