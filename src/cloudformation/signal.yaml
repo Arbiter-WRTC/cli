@@ -572,28 +572,21 @@ Resources:
             );
 
             console.log('Connections to Notify:', connectionsToNotify);
-
-            for (const connection of connectionsToNotify) {
+            
+            for (let i = 0; i < connectionsToNotify.length; i++) {
+              const connection = connectionsToNotify[i];
               try {
-                console.log(
-                  'Notifying',
-                  connection,
-                  'of disconnected client:',
-                  socketInfo.id
-                );
-                const data = {
-                  type: 'clientDisconnect',
-                  client: socketInfo.id,
-                };
+                console.log('Notifying', connection, 'of disconnected client:', socketInfo.id);
+                const data = { type: 'clientDisconnect', clientId: socketInfo.id };
                 console.log('Connection to Notify:', connection);
-                console.log('Sending to:', connection.connectionId);
                 console.log('Sending data:', data);
                 await callbackAPI.postToConnection({
                   ConnectionId: connection.connectionId,
                   Data: JSON.stringify(data),
-                });
+                })
+                .promise();
               } catch (e) {
-                console.log('Error sending clientDisconnect', e);
+                console.error('Error sending clientDisconnect', e);
               }
             }
 
@@ -610,7 +603,6 @@ Resources:
               statusCode: 200,
             };
           };
-
       Role:
         Fn::GetAtt:
           - DisconnectHandlerServiceRoleE54F14F9
