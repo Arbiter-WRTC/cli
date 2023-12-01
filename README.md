@@ -18,7 +18,7 @@ $ npm install -g arbiter-wrtc
 $ arbiter COMMAND
 running command...
 $ arbiter (--version)
-arbiter-wrtc/0.1.0 darwin-x64 node-v20.6.1
+arbiter-wrtc/0.1.1 darwin-x64 node-v20.6.1
 $ arbiter --help [COMMAND]
 USAGE
   $ arbiter COMMAND
@@ -27,9 +27,7 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`arbiter deploy [FILE]`](#arbiter-deploy-file)
-* [`arbiter hello PERSON`](#arbiter-hello-person)
-* [`arbiter hello world`](#arbiter-hello-world)
+* [`arbiter deploy`](#arbiter-deploy)
 * [`arbiter help [COMMANDS]`](#arbiter-help-commands)
 * [`arbiter plugins`](#arbiter-plugins)
 * [`arbiter plugins:install PLUGIN...`](#arbiter-pluginsinstall-plugin)
@@ -41,71 +39,19 @@ USAGE
 * [`arbiter plugins:uninstall PLUGIN...`](#arbiter-pluginsuninstall-plugin-2)
 * [`arbiter plugins update`](#arbiter-plugins-update)
 
-## `arbiter deploy [FILE]`
+## `arbiter deploy`
 
-describe the command here
+provision and deploy arbiter to aws
 
 ```
 USAGE
-  $ arbiter deploy [FILE] [-n <value>] [-f]
-
-ARGUMENTS
-  FILE  file to read
-
-FLAGS
-  -f, --force
-  -n, --name=<value>  name to print
-
-DESCRIPTION
-  describe the command here
-
-EXAMPLES
   $ arbiter deploy
-```
-
-_See code: [src/commands/deploy.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/deploy.ts)_
-
-## `arbiter hello PERSON`
-
-Say hello
-
-```
-USAGE
-  $ arbiter hello PERSON -f <value>
-
-ARGUMENTS
-  PERSON  Person to say hello to
-
-FLAGS
-  -f, --from=<value>  (required) Who is saying hello
 
 DESCRIPTION
-  Say hello
-
-EXAMPLES
-  $ oex hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
+  provision and deploy arbiter to aws
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/hello/index.ts)_
-
-## `arbiter hello world`
-
-Say hello world
-
-```
-USAGE
-  $ arbiter hello world
-
-DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ arbiter hello world
-  hello world! (./src/commands/hello/world.ts)
-```
-
-_See code: [src/commands/hello/world.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/hello/world.ts)_
+_See code: [src/commands/deploy.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.1/src/commands/deploy.ts)_
 
 ## `arbiter help [COMMANDS]`
 
