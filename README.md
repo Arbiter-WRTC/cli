@@ -66,3 +66,11 @@ Please refer to the documentation on <a href="https://arbiter-framework.com">Arb
 _See code: [src/commands/deploy.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.0/src/commands/deploy.ts)_
 
 <!-- commandsstop -->
+
+## The Team
+
+**<a href="https://github.com/watzmonium" target="_blank">Stephen Watzman</a>** _Software Engineer_ • Detroit, MI
+
+**<a href="https://github.com/frye-t" target="_blank">Tyler Frye</a>** _Software Engineer_ • Tampa Bay, FL
+
+**<a href="https://github.com/jayjayabose" target="_blank">Jay Jayabose</a>** _Software Engineer_ • New York, NY
