@@ -13,17 +13,19 @@ export default class Deploy extends Command {
     await ui.generateName();
     const {credentials, region, idleRooms} = await GetAwsInfo();
     let cloudFormation
-    
-    try {
-      cloudFormation = new CloudFormation({ credentials, region });
-      await cloudFormation.listStacks({});
-    } catch (err) {
-      if (err instanceof Error) {
-        errorHandler(err.message);
-      } else {
-        errorHandler(`Non-Error thrown: ${String(err)}`);
-      }
-    }
+    setTimeout(() => {
+      
+    }, 200);
+    // try {
+    //   cloudFormation = new CloudFormation({ credentials, region });
+    //   await cloudFormation.listStacks({});
+    // } catch (err) {
+    //   if (err instanceof Error) {
+    //     errorHandler(err.message);
+    //   } else {
+    //     errorHandler(`Non-Error thrown: ${String(err)}`);
+    //   }
+    // }
     ui.success("AWS Credentials validated");
     
     ui.display("Arbiter is being deployed and might take a few minutes");

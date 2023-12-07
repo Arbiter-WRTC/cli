@@ -24,28 +24,58 @@ export class CloudDeploy {
     this.endpoints = {};
   }
 
+  fakeSFU(): ListrTask  {
+    return this.createFAKEListrTask(1500, "Deploying SFU to ECS Fargate...", "SFU ECS is deployed!");
+  }
+
+  fakeWSG(): ListrTask  {
+    return this.createFAKEListrTask(1000, "Deploying Signaling Stack to Websocket Gateway...", "Websocket Gateway Signaling Stack is deployed!");
+  }
+
+  fakeCoturn(): ListrTask  {
+    return this.createFAKEListrTask(2500,  "Deploying CoTURN to ECS Fargate...", "CoTURN ECS is deployed!");
+  }
+
+  fakeHTTP(): ListrTask  {
+    return this.createFAKEListrTask(1000,  "Deploying HTTP API Gateway...", "HTTP API Gateway is deployed!");
+  }
+
+  fakeEndpoints(): ListrTask  {
+    return this.createFAKEListrTask(1500,  'getting resource endpoints', "All endpoints fetched!");
+  }
+
+  createFAKEListrTask(time: number, deployMessage: string, completeMessage: string): ListrTask {
+    return {
+      title: deployMessage,
+      task: async (_, task) => {
+        await new Promise((res, rej) => setTimeout(() => {res(1)}, time))
+        task.title = ui.secondary(completeMessage);
+      },
+    };
+  }
+
   async deployAll() {
     const concurrentTasks = new Listr(
-      [this.deploySFU(), this.deployCoTURN(), this.deployWSG()],
+      [this.fakeSFU(), this.fakeCoturn(), this.fakeWSG()],
       { concurrent: true, exitOnError: true }
     );
     const httpGatewayTask = new Listr(
-      [this.deployHTTPAPI(), this.getAllEndpoints()],
+      [this.fakeHTTP(), this.fakeEndpoints()],
       { concurrent: false }
     );
 
     try {
       await concurrentTasks.run();
       await httpGatewayTask.run();
-      await this.createNRooms(this.endpoints['HTTPGatewayURI']);
+      // await this.createNRooms(this.endpoints['HTTPGatewayURI']);
       
-      const envConfig = {
-        VITE_DEV_SIGNAL_SERVER_URL: this.endpoints['WebsocketURI'],
-        VITE_RTC_CONFIG: this.endpoints['FormattedRTCConfig'],
-        VITE_API_STACK_URL: this.endpoints['HTTPGatewayURI'],
-      };
-      const envData = this.convertToEnvFormat(envConfig);
-      await this.writeEnvFile(envData);
+      // const envConfig = {
+      //   VITE_DEV_SIGNAL_SERVER_URL: this.endpoints['WebsocketURI'],
+      //   VITE_RTC_CONFIG: this.endpoints['FormattedRTCConfig'],
+      //   VITE_API_STACK_URL: this.endpoints['HTTPGatewayURI'],
+      // };
+      // const envData = this.convertToEnvFormat(envConfig);
+      // await this.writeEnvFile(envData);
     } catch (err: any) {
       deployErrorHandler(err);
     }
