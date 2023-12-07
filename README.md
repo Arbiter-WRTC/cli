@@ -18,7 +18,7 @@ $ npm install -g arbiter-wrtc
 $ arbiter COMMAND
 running command...
 $ arbiter (--version)
-arbiter-wrtc/0.1.1 darwin-x64 node-v20.6.1
+arbiter-wrtc/0.1.2 darwin-x64 node-v20.6.1
 $ arbiter --help [COMMAND]
 USAGE
   $ arbiter COMMAND
@@ -51,7 +51,7 @@ DESCRIPTION
   provision and deploy arbiter to aws
 ```
 
-_See code: [src/commands/deploy.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.1/src/commands/deploy.ts)_
+_See code: [src/commands/deploy.ts](https://github.com/Arbiter-WRTC/cli/blob/v0.1.2/src/commands/deploy.ts)_
 
 ## `arbiter help [COMMANDS]`
 
