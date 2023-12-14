@@ -38,7 +38,7 @@ export const clear = () => {
 
 export const greet = (): void => {
   clear();
-  console.log(arbiterGradient("\n  Welcome to"));
+  console.log(arbiterGradient("\n  Welcome to Arbiter!"));
 };
 
 export const printLogo = (): void => {
@@ -98,25 +98,6 @@ export const generateName = (): Promise<void> => {
     ));
 };
 
-export const deploySuccessText = (): Promise<void> => {
-  return Promise.resolve(
-    figlet.text(
-      "ARBITER DEPLOYED",
-      {
-        font: "Standard",
-        horizontalLayout: "default",
-        verticalLayout: "default",
-        width: 80,
-        whitespaceBreak: true,
-      },
-      (err, data) => {
-        if (err) {
-          console.log("Something went wrong...");
-          console.dir(err);
-          return;
-        }
-        const centeredData = centerText(data, 60)
-        console.log(gradient(["#F03D98","#0D2D7D", "#0D2D7D", "#F03D98"])(`${centeredData}\n`));
-      }
-    ));
+export const deploySuccessText = (): void => {
+  console.log(arbiterGradient("Arbiter successfully deployed!"));
 };

@@ -9,8 +9,8 @@ export default class Deploy extends Command {
 
   public async run(): Promise<void> {
     ui.greet();
-    await ui.printLogo();
-    await ui.generateName();
+    // await ui.printLogo();
+    // await ui.generateName();
     const {credentials, region, idleRooms} = await GetAwsInfo();
     let cloudFormation
     setTimeout(() => {
@@ -32,11 +32,11 @@ export default class Deploy extends Command {
 
     const arbiterDeploy = new CloudDeploy(cloudFormation, idleRooms);
     await arbiterDeploy.deployAll();
-
+      
     ui.deploySuccessText();
-    ui.gradientText('Warp field stablized!')
-    ui.success('Deployment successful. Copy the .env.local file into your react project!')
-    ui.success('Use the Arbiter-SDK to complete your conferencing features and enjoy!')
-    ui.gradientText('Thank you for using Arbiter!');
+    // ui.gradientText('Warp field stablized!')
+    // ui.success('Deployment successful. Copy the .env.local file into your react project!')
+    // ui.success('Use the Arbiter-SDK to complete your conferencing features and enjoy!')
+    // ui.gradientText('Thank you for using Arbiter!');
   }
 }
